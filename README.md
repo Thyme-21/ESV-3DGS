@@ -1,7 +1,8 @@
-# GL-GS
+# ESGS
 This is the official repository for our paper "Enhancing Sparse-View 3D Gaussian Splatting via Multi-Level Collaborative Optimization for Robust Novel View Synthesis"
 
-![image](https://github.com/user-attachments/assets/bd7041f8-285b-488b-a4c9-e610b054615b)
+<img width="1600" height="900" alt="1" src="https://github.com/user-attachments/assets/35557de9-1fe9-438f-85b2-ba4bd5143397" />
+
 
 ## Abstract
 Novel view synthesis aims to reconstruct three-dimensional scenes from a limited number of viewpoints and generate photorealistic images of unseen views. This task has broad applications in virtual reality, film production, and robotic navigation. However, under sparse-view conditions, traditional methods such as 3D Gaussian Splatting (3DGS) often face challenges, including geometric instability and insufficient point cloud distribution.To address these issues, this paper introduces a multi-level collaborative optimization framework. Firstly, a monocular depth estimator provides depth-based geometric supervision, mitigating geometric deviations under sparse conditions. Secondly, a local refinement module based on cross-view matching dynamically corrects point cloud distribution in high-error regions, enhancing texture and detail consistency. Finally, a global-local collaborative point cloud density regulation method is introduced, combining global opacity control with depth-gradient awareness to compress redundant point clouds while preserving clear geometric boundaries.Experimental results on the LLFF and Mip-NeRF360 datasets demonstrate that our method achieves strong performance in geometric stability, detail fidelity, and overall rendering quality. Here, we show that our approach improves PSNR by up to 10%, SSIM by up to 8%, and reduces LPIPS by up to 15% compared to state-of-the-art methods, showcasing its potential for practical applications in sparse-view reconstruction.
