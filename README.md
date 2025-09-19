@@ -1,17 +1,17 @@
 # GL-GS
-This is the official repository for our paper "A Global-Local Consistency Framework for Sparse-view 3D Gaussian Splatting"
+This is the official repository for our paper "Enhancing Sparse-View 3D Gaussian Splatting via Multi-Level Collaborative Optimization for Robust Novel View Synthesis"
 
 ![image](https://github.com/user-attachments/assets/bd7041f8-285b-488b-a4c9-e610b054615b)
 
 ## Abstract
-Substantial progress has been made in novel view synthesis in recent years. However, achieving high-quality 3D reconstruction under sparse-view conditions remains challenging. Traditional methods still face the difficulties with geometric distortions and loss of local details when only a limited number of images are available as input. In this paper, a new framework, GL-GS, which integrates both global and local information, is proposed to improve viewpoint synthesis in the domain of sparse reconstruction. Initially, global geometric constraints, established through a dual-path Gaussian radiance field, are employed to identify potentially flawed regions and perform preliminary optimization of the overall geometric structure. Building upon this, a local optimization mechanism based on error maps and weakly supervised region matching is introduced to further pinpoint unstable regions. This mechanism applies strategies for point densification and dynamically adjusts transparency to precisely correct local geometric inaccuracies. Lastly, to better ensure the perceptual consistency in local details between the rendered image and the real image,we design a patch-based ranking loss. By randomly sampling local patches and imposing constraints on the relative ordering of pixel pairs, this loss enhances the perceptual quality of the reconstructed images. Experimental results demonstrate that our method provides a practical global-local fusion approach for 3D scene reconstruction under sparse-view conditions and achieves superior rendering quality across multiple datasets.
+Novel view synthesis aims to reconstruct three-dimensional scenes from a limited number of viewpoints and generate photorealistic images of unseen views. This task has broad applications in virtual reality, film production, and robotic navigation. However, under sparse-view conditions, traditional methods such as 3D Gaussian Splatting (3DGS) often face challenges, including geometric instability and insufficient point cloud distribution.To address these issues, this paper introduces a multi-level collaborative optimization framework. Firstly, a monocular depth estimator provides depth-based geometric supervision, mitigating geometric deviations under sparse conditions. Secondly, a local refinement module based on cross-view matching dynamically corrects point cloud distribution in high-error regions, enhancing texture and detail consistency. Finally, a global-local collaborative point cloud density regulation method is introduced, combining global opacity control with depth-gradient awareness to compress redundant point clouds while preserving clear geometric boundaries.Experimental results on the LLFF and Mip-NeRF360 datasets demonstrate that our method achieves strong performance in geometric stability, detail fidelity, and overall rendering quality. Here, we show that our approach improves PSNR by up to 10%, SSIM by up to 8%, and reduces LPIPS by up to 15% compared to state-of-the-art methods, showcasing its potential for practical applications in sparse-view reconstruction.
 
 ## Installation
 Tested on Ubuntu 20.04, CUDA 11.8, PyTorch 1.12.1
 
 ``````
 conda env create --file environment.yml
-conda activate GLGS
+conda activate ESGS
 ``````
 
 ``````
