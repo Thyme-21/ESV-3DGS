@@ -29,8 +29,26 @@ from utils.graphics_utils import getWorld2View2
 from utils.pose_utils import generate_ellipse_path, generate_spiral_path, generate_spiral_path_dtu
 from utils.general_utils import vis_depth
 import matplotlib.cm as cm
+from utils.depth_utils import estimate_depth, load_depth_model
 
 
+def render_fn(views, gaussians, pipeline, background):
+    with torch.autocast(device_type='cuda', dtype=torch.float16):
+        for view in views:
+            render(view, gaussians, pipeline, background)
+
+def measure_fps(scene, gaussians, pipeline, background):
+    with torch.no_grad():
+        views = scene.getTrainCameras() + scene.getTestCameras()
+        t0 = benchmark.Timer(stmt='render_fn(views, gaussians, pipeline, background, use_amp)',
+                            setup='from __main__ import render_fn',
+                            globals={'views': views, 'gaussians': gaussians, 'pipeline': pipeline,
+                                     'background': background},
+                            )
+        time = t0.timeit(50)
+        fps = len(views)/time.median
+        print("Rendering FPS: ", fps)
+    return fps
 
 def render_set(model_path, name, iteration, views, gaussians, pipeline, background, args):
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
@@ -39,6 +57,8 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     makedirs(render_path, exist_ok=True)
     makedirs(gts_path, exist_ok=True)
 
+    start_time = time.time()  # 开始渲染的时间
+    total_images = len(views)  # 总图像数量
 
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         render_pkg = render(view, gaussians, pipeline, background)
@@ -50,12 +70,21 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             depth_map = vis_depth(render_pkg['depth'][0].detach().cpu().numpy())
             cv2.imwrite(os.path.join(render_path, view.image_name + '_depth.png'), depth_map)
 
+    end_time = time.time()  # 结束渲染的时间
+    total_time = end_time - start_time  # 总渲染时间
+    if total_images > 0:
+        fps = total_images / total_time  # 计算FPS
+        print(f"Rendering FPS for set {name}: {fps:.2f}")
+    else:
+        print("No images to render.")
 
 def render_sets(dataset : ModelParams, pipeline : PipelineParams, args):
 
     with torch.no_grad():
         gaussians = GaussianModel(args)
-        scene = Scene(args, gaussians, load_iteration=args.iteration, shuffle=False)
+        depth_model = load_depth_model(mode='vitl')  # or 'vitb' ...
+
+        scene = Scene(args, gaussians, load_iteration=args.iteration, shuffle=False, depth_model=depth_model)
         print(f"point number is {gaussians.get_xyz.shape[0]}")
 
         bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
@@ -80,6 +109,7 @@ if __name__ == "__main__":
     parser.add_argument("--video", action="store_true")
     parser.add_argument("--fps", default=25, type=int)
     parser.add_argument("--render_depth", action="store_true")
+    parser.add_argument("--zdensify", action="store_true")
     args = get_combined_args(parser)
     print("Rendering " + args.model_path)
 
