@@ -25,12 +25,12 @@ class Scene:
 
     gaussians : GaussianModel
 
-    def __init__(self, args : ModelParams, gaussians : GaussianModel, load_iteration=None, shuffle=True, resolution_scales=[1.0]):
+    def __init__(self, args : ModelParams, gaussians : GaussianModel, load_iteration=None, shuffle=True, resolution_scales=[1.0], depth_model=None):
         """b
         :param path: Path to colmap scene main folder.
         """
         self.model_path = args.model_path
-        self.source_path = args.source_path 
+        self.source_path = args.source_path
         print(f"args.source_path  is {args.source_path }")
         self.loaded_iter = None
         self.gaussians = gaussians
@@ -87,9 +87,9 @@ class Scene:
 
         for resolution_scale in resolution_scales:
             print("Loading Training Cameras", resolution_scale)
-            self.train_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.train_cameras, resolution_scale, args)
+            self.train_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.train_cameras, resolution_scale, args, depth_model)
             print("Loading Test Cameras", resolution_scale)
-            self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, args)
+            self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, args, depth_model)
 
             pseudo_cams = []
             if args.source_path.find('llff') != -1:
