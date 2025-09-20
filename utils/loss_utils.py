@@ -13,7 +13,9 @@ import torch
 from torch.autograd import Variable
 from math import exp
 import torch.nn.functional as F
-import random
+import torch.nn as nn
+import torchvision.transforms as transforms
+
 
 def l1_loss(network_output, gt):
     return torch.abs((network_output - gt)).mean()
@@ -134,3 +136,68 @@ def ranking_loss(input, target, patch_size, margin=1e-4):
     l = torch.mean(t[t > 0])
 
     return l
+
+class SmoothLoss(nn.Module):
+    def __init__(self):
+        super(SmoothLoss, self).__init__()
+        self.edge_conv_x_3 = torch.nn.Conv2d(3, 1, 3, bias=False).cuda()
+        self.edge_conv_y_3 = torch.nn.Conv2d(3, 1, 3, bias=False).cuda()
+        self.edge_conv_x_1 = torch.nn.Conv2d(1, 1, 3, bias=False).cuda()
+        self.edge_conv_y_1 = torch.nn.Conv2d(1, 1, 3, bias=False).cuda()
+
+        # Set layer weights to be edge filters
+        with torch.no_grad():
+            for layer in [self.edge_conv_x_3, self.edge_conv_x_1]:
+                for ch in range(layer.weight.size(1)):
+                    layer.weight[0, ch] = torch.Tensor([[0, 0, 0], [-0.5, 0, 0.5], [0, 0, 0]]).cuda()
+
+            for layer in [self.edge_conv_y_3, self.edge_conv_y_1]:
+                for ch in range(layer.weight.size(1)):
+                    layer.weight[0, ch] = torch.Tensor([[0, -0.5, 0], [0, 0, 0], [0, 0.5, 0]]).cuda()
+
+    def forward(self, disparity, image):
+        edge_x_im = torch.exp((self.edge_conv_x_3(image).abs() * -0.33))
+        edge_y_im = torch.exp((self.edge_conv_y_3(image).abs() * -0.33))
+        edge_x_d = self.edge_conv_x_1(disparity)
+        edge_y_d = self.edge_conv_y_1(disparity)
+        return ((edge_x_im * edge_x_d)).abs().mean() + ((edge_y_im * edge_y_d)).abs().mean()
+
+transform1 = transforms.CenterCrop((576, 768))
+transform2 = transforms.CenterCrop((544, 736))
+
+
+def patched_depth_ranking_loss(pred_depth, gt_depth, patch_size=32, margin=1e-4):
+    """在 patch 级别比较预测深度和GT深度的相对排序"""
+    # 展开 patch
+    # 保证输入是 [B, C, H, W]，这里 C=1
+    if pred_depth.dim() == 2:
+        pred_depth = pred_depth.unsqueeze(0).unsqueeze(0)  # -> [1, 1, H, W]
+    if gt_depth.dim() == 2:
+        gt_depth = gt_depth.unsqueeze(0).unsqueeze(0)  # -> [1, 1, H, W]
+
+    pred_patches = patchify(pred_depth, patch_size).view(-1, patch_size * patch_size)
+    gt_patches = patchify(gt_depth, patch_size).view(-1, patch_size * patch_size)
+
+    # 随机打乱索引
+    length = (pred_patches.shape[1]) // 2 * 2
+    rand_indices = torch.randperm(length, device=pred_depth.device)
+    pred_rand = pred_patches[:, rand_indices]
+    gt_rand = gt_patches[:, rand_indices]
+
+    # 排序一致性约束
+    patch_rank_loss = torch.max(
+        torch.sign(gt_rand[:, :length // 2] - gt_rand[:, length // 2:]) *
+        (pred_rand[:, length // 2:] - pred_rand[:, :length // 2]) + margin,
+        torch.zeros_like(gt_rand[:, :length // 2], device=pred_depth.device)
+    ).mean()
+
+    return patch_rank_loss
+
+def get_depth_ranking_loss(pred_depth, gt_depth):
+    """整体深度排序一致性约束（中心裁剪 + patch 级别排序）"""
+    depth_rank_loss = 0.0
+    for transform in [transform1, transform2]:
+        pred_crop = transform(pred_depth)
+        gt_crop = transform(gt_depth.unsqueeze(0))
+        depth_rank_loss += 0.5 * patched_depth_ranking_loss(pred_crop, gt_crop, patch_size=32)
+    return depth_rank_loss
