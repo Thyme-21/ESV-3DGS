@@ -331,6 +331,10 @@ class GaussianModel:
                 optimizable_tensors[group["name"]] = group["params"][0]
         return optimizable_tensors
 
+    def opacity_decay(self, factor=0.99):
+        opacity = self.get_opacity * factor
+        self._opacity.data = self.inverse_opacity_activation(opacity)
+
     def dist_prune(self):
         dist = chamfer_dist(self.init_point, self._xyz)
         valid_points_mask = (dist < 3.0)
