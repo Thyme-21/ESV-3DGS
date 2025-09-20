@@ -98,8 +98,12 @@ class OptimizationParams(ParamGroup):
         self.sample_pseudo_interval = 1
         self.dist_thres = 10.
         self.random_background = False
-        self.absdensify = False
+        self.zdensify = True
 
+        self.ranking_reg = 0.05
+        self.opacity_reg = 0.01
+        self.depth_weight = 0.05
+        self.depth_pseudo_weight = 0.5
         self. scale_reg = 0.01
         self.opacity_reg = 0.01
         self.reset_from_iter = 500
